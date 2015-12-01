@@ -1,0 +1,24 @@
+version = '1.0-SNAPSHOT'
+
+apply plugin:'application'
+ext.mainClass = mainClassName = "org.saucistophe.thud.display.Display"
+
+dependencies
+{
+    compile project(':Libs:global-lib')
+}
+
+	// A task to create a single Jar with all dependencies
+	task fatJar(type: Jar){
+		baseName = project.name + '-all';
+		from
+		{
+			configurations.compile.collect { it.isDirectory() ? it : zipTree(it) }
+		}
+		with jar
+		manifest
+		{
+			attributes 'Implementation-Title': 'Gradle Quickstart', 'Implementation-Version': version
+			attributes 'Main-Class': mainClass
+		}
+	}

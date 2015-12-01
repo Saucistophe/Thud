@@ -1,0 +1,46 @@
+
+// The settings applied to all subprojects (i.e, all projects referenced in gradle.settings file.)
+subprojects 
+{
+	// Those are Java project.
+	apply plugin: 'java'
+	
+	// The tasks with Java Compilation tasks
+	tasks.withType(JavaCompile)
+	{
+		// Should handle UTF-8 files.
+		options.encoding = 'UTF-8'
+		// Enrich compilation logs.
+		options.compilerArgs << "-Xlint:unchecked" << "-Xlint:deprecation"
+	}
+	
+	// By default, enable assertions.
+	tasks.withType(JavaExec)
+	{
+		println "Assertions enabled"
+		applicationDefaultJvmArgs = ["-ea"]
+	}
+	
+	// The repositories used to store and get artefacts
+	repositories
+	{
+		// Maven local fodler and central site.
+		mavenLocal ()
+		mavenCentral ()
+		
+		// The Apache snapshot maven repo.
+		maven
+		{
+			url "https://repository.apache.org/content/repositories/snapshots/"
+		}
+	}
+
+	// Common dependencies
+    dependencies
+	{
+        testCompile 'junit:junit:4.11'
+    }
+
+	// The default version (that is, the version of stuff deeply linked to this file or shared between projects)
+    version = '1.1-SNAPSHOT'
+}
