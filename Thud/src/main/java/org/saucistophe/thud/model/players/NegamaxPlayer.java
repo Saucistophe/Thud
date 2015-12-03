@@ -1,6 +1,7 @@
 package org.saucistophe.thud.model.players;
 
 import java.util.List;
+import org.saucistophe.annotations.SettingsField;
 import static org.saucistophe.thud.model.Piece.DWARF;
 import static org.saucistophe.thud.model.Piece.TROLL;
 import org.saucistophe.thud.model.boards.Board;
@@ -11,7 +12,8 @@ import static org.saucistophe.thud.model.boards.Board.INFINITY;
  */
 public class NegamaxPlayer extends Player
 {
-	public static final int MAX_DEPTH = 3;
+	@SettingsField(category = "AI",name = "Processing depth", minValue = 1, maxValue = 6)
+	public static int MAX_DEPTH = 3;
 
 	/**
 	 Makes the best move possible.

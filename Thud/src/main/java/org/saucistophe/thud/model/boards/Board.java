@@ -68,20 +68,25 @@ public abstract class Board implements Cloneable
 
 	 @return A board, identical to this one.
 	 */
-	protected Board cloneBoard()
+	public Board cloneBoard()
 	{
 		Board result = null;
 		try
 		{
 			result = (Board) this.clone();
-			result.squares = Arrays.stream(this.squares).map(x -> x.clone()).toArray(Piece[][]::new);
-			result.dwarvesTurn = this.dwarvesTurn;
+			result.set(this);
 		} catch (CloneNotSupportedException ex)
 		{
 			Logger.getLogger(Board.class.getName()).log(Level.SEVERE, null, ex);
 		}
 
 		return result;
+	}
+
+	public void set(Board thatBoard)
+	{
+		this.squares = Arrays.stream(thatBoard.squares).map(x -> x.clone()).toArray(Piece[][]::new);
+		this.dwarvesTurn = thatBoard.dwarvesTurn;
 	}
 
 	/**
@@ -110,7 +115,7 @@ public abstract class Board implements Cloneable
 	 */
 	public boolean isNearADwarf(int x, int y)
 	{
-		return !getNearby(DWARF,x, y).isEmpty();
+		return !getNearby(DWARF, x, y).isEmpty();
 	}
 
 	/**
@@ -163,7 +168,7 @@ public abstract class Board implements Cloneable
 		// We check if a (or several) dwarf is captured.
 		if (isTroll)
 		{
-			return getNearby(DWARF,x2, y2);
+			return getNearby(DWARF, x2, y2);
 		}
 		return null;
 	}
@@ -174,7 +179,7 @@ public abstract class Board implements Cloneable
 	 @param y The Y location of the square to check.
 	 @return The list of dwarves near the given square.
 	 */
-	public List<Coordinate> getNearby(Piece pieceType,int x, int y)
+	public List<Coordinate> getNearby(Piece pieceType, int x, int y)
 	{
 		return Arrays.stream(Coordinate.directions)
 			.map(direction -> new Coordinate(x + direction.width, y + direction.height))
@@ -205,30 +210,29 @@ public abstract class Board implements Cloneable
 		Stream<Coordinate> piecesToMove = getPiecesStream(dwarvesTurn ? DWARF : TROLL);
 
 		// Iterate over pieces
-		piecesToMove.forEach(pieceToMove ->
-		{
-			// Iterate over the piece's possible destinations
-			List<Coordinate> trollShovings = null;
-			if (!dwarvesTurn)
+		piecesToMove.forEach(pieceToMove
+			->
 			{
-				trollShovings = new ArrayList<>();
-			}
-
-			List<Coordinate> possibleMoves = validMoves(pieceToMove.width, pieceToMove.height, trollShovings);
-			for (Coordinate destination : possibleMoves)
-			{
-				// Create an imaginary board from the move.
-				Board temporaryBoard = this.cloneBoard();
-				List<Coordinate> dwarvesVictim = temporaryBoard.move(pieceToMove.width, pieceToMove.height, destination.width, destination.height);
-
-				// If there is no dwarf victim, simply effect the move.
-				if (dwarvesVictim == null || dwarvesVictim.isEmpty())
+				// Iterate over the piece's possible destinations
+				List<Coordinate> trollShovings = null;
+				if (!dwarvesTurn)
 				{
-					result.add(temporaryBoard);
+					trollShovings = new ArrayList<>();
 				}
-				else
+
+				List<Coordinate> possibleMoves = validMoves(pieceToMove.width, pieceToMove.height, trollShovings);
+				for (Coordinate destination : possibleMoves)
 				{
-					// If it's a troll shoving, for simplicity, kill all the dwarves.
+					// Create an imaginary board from the move.
+					Board temporaryBoard = this.cloneBoard();
+					List<Coordinate> dwarvesVictim = temporaryBoard.move(pieceToMove.width, pieceToMove.height, destination.width, destination.height);
+
+					// If there is no dwarf victim, simply effect the move.
+					if (dwarvesVictim == null || dwarvesVictim.isEmpty())
+					{
+						result.add(temporaryBoard);
+					}
+					else // If it's a troll shoving, for simplicity, kill all the dwarves.
 					if (trollShovings != null && trollShovings.contains(destination))
 					{
 						for (Coordinate victim : dwarvesVictim)
@@ -248,7 +252,6 @@ public abstract class Board implements Cloneable
 						}
 					}
 				}
-			}
 		});
 		return result;
 	}

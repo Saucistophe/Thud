@@ -4,6 +4,7 @@ import java.awt.Color;
 import java.awt.Font;
 import javax.swing.BorderFactory;
 import javax.swing.JLabel;
+import org.saucistophe.annotations.SettingsField;
 import org.saucistophe.thud.model.Coordinate;
 import org.saucistophe.thud.model.Piece;
 import static org.saucistophe.thud.model.Piece.OUT;
@@ -21,7 +22,10 @@ public class PieceLabel extends JLabel
 	public boolean possibleMove = false;
 	public boolean possibleVictim = false;
 
-	private final static Font font = new Font("Arial", Font.BOLD, 25);
+	@SettingsField(category = "Display", name = "Font Size")
+	public static int fontSize = 25;
+
+	private static Font font = new Font("Arial", Font.BOLD, fontSize);
 
 	// The colors used for squares, inside and outside the board
 	private static final Color OUTSIDE_COLOR_1 = new Color(0x5A5A5A);
@@ -49,11 +53,18 @@ public class PieceLabel extends JLabel
 		setBorder(BorderFactory.createLineBorder(Color.GRAY, 1));
 		setFont(font);
 		setOpaque(true);
-		setPreferredSize(new Coordinate(30, 30));
+		setPreferredSize(new Coordinate(fontSize, fontSize));
 	}
 
 	public void refresh(Board board, Display display)
 	{
+		// Reset the font size.
+		if (font.getSize() != fontSize)
+		{
+			font = new Font(font.getName(), font.getStyle(), fontSize);
+		}
+		setFont(font);
+
 		boolean white = (x + y) % 2 == 0;
 
 		// Fill in the square's text value.
