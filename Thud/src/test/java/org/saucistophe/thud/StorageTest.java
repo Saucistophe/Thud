@@ -21,6 +21,6 @@ public class StorageTest
 		Board.readFromFile(outFile);
 
 		// Clean up.
-		//outFile.deleteOnExit();
+		outFile.deleteOnExit();
 	}
 }
