@@ -7,14 +7,20 @@ import org.saucistophe.thud.model.boards.Board;
 
 /**
 
-*/
-public class StorageTest {
+ */
+public class StorageTest
+{
 
 	@Test
 	public void storeTest() throws IOException
 	{
-		Board board = Board.readFromFile(new File("initialPosition.thud"));
+		Board board = Board.readFromFile(new File(StorageTest.class.getClassLoader().getResource("initialBoard.thud").getFile()));
+
+		// Simply drop the file, hpefully without errors.
 		File outFile = board.writeQuick();
 		Board.readFromFile(outFile);
+
+		// Clean up.
+		//outFile.deleteOnExit();
 	}
 }

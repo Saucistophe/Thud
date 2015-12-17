@@ -1,10 +1,8 @@
 package org.saucistophe.thud.model.boards;
 
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.io.UnsupportedEncodingException;
 import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -47,6 +45,9 @@ public abstract class Board implements Cloneable
 	 */
 	public boolean dwarvesTurn;
 
+	/**
+	 A cache of the actually playable pieces, to avoid non-playable squares.
+	 */
 	private static List<Coordinate> piecesCache = null;
 
 	/**
@@ -210,8 +211,7 @@ public abstract class Board implements Cloneable
 		Stream<Coordinate> piecesToMove = getPiecesStream(dwarvesTurn ? DWARF : TROLL);
 
 		// Iterate over pieces
-		piecesToMove.forEach(pieceToMove
-			->
+		piecesToMove.forEach(pieceToMove ->
 			{
 				// Iterate over the piece's possible destinations
 				List<Coordinate> trollShovings = null;
@@ -233,26 +233,28 @@ public abstract class Board implements Cloneable
 						result.add(temporaryBoard);
 					}
 					else // If it's a troll shoving, for simplicity, kill all the dwarves.
-					if (trollShovings != null && trollShovings.contains(destination))
 					{
-						for (Coordinate victim : dwarvesVictim)
+						if (trollShovings != null && trollShovings.contains(destination))
 						{
-							temporaryBoard.squares[victim.width][victim.height] = EMPTY;
+							for (Coordinate victim : dwarvesVictim)
+							{
+								temporaryBoard.squares[victim.width][victim.height] = EMPTY;
+							}
+							result.add(temporaryBoard);
 						}
-						result.add(temporaryBoard);
-					}
-					// If not, only one victim can be made, create a board for each one.
-					else
-					{
-						for (Coordinate victim : dwarvesVictim)
+						// If not, only one victim can be made, create a board for each one.
+						else
 						{
-							Board victimTemporaryBoard = temporaryBoard.cloneBoard();
-							victimTemporaryBoard.squares[victim.width][victim.height] = EMPTY;
-							result.add(victimTemporaryBoard);
+							for (Coordinate victim : dwarvesVictim)
+							{
+								Board victimTemporaryBoard = temporaryBoard.cloneBoard();
+								victimTemporaryBoard.squares[victim.width][victim.height] = EMPTY;
+								result.add(victimTemporaryBoard);
+							}
 						}
 					}
 				}
-		});
+			});
 		return result;
 	}
 
@@ -276,13 +278,8 @@ public abstract class Board implements Cloneable
 	public File writeQuick()
 	{
 		File tempFile = new File(this.hashCode() + ".thud");
-		try
-		{
-			writeToFile(tempFile);
-		} catch (FileNotFoundException | UnsupportedEncodingException ex)
-		{
-			Logger.getLogger(Board.class.getName()).log(Level.SEVERE, null, ex);
-		}
+		writeToFile(tempFile);
+
 		return tempFile;
 	}
 
@@ -290,12 +287,18 @@ public abstract class Board implements Cloneable
 	 Writes the board to a file, in a quite readable format.
 
 	 @param outputFile The file to write to.
-	 @throws FileNotFoundException        If the file does not exist and can't be created.
-	 @throws UnsupportedEncodingException If UTF-8 is not supported.
 	 */
-	public void writeToFile(File outputFile) throws FileNotFoundException, UnsupportedEncodingException
+	public void writeToFile(File outputFile)
 	{
-		PrintWriter writer = new PrintWriter(outputFile, "UTF-8");
+		PrintWriter writer;
+		try
+		{
+			writer = new PrintWriter(outputFile, "UTF-8");
+		} catch (IOException ex)
+		{
+			Logger.getLogger(Board.class.getName()).log(Level.SEVERE, null, ex);
+			return;
+		}
 
 		// Iterate on squares
 		for (int j = 0; j < getHeight(); j++)
@@ -339,11 +342,12 @@ public abstract class Board implements Cloneable
 		// Also get the number of lines.
 		int numberOfLines = (int) Files.lines(inputFile.toPath()).count();
 
-		// Create the relevant square board.
-		Piece squares[][] = new Piece[longestLine][numberOfLines];
-
 		// TODO add something to decide which class.
 		Board board = new RegularBoard();
+
+		// Create the relevant square board.
+		board.squares = new Piece[longestLine][numberOfLines];
+
 		try (Stream<String> lines = Files.lines(inputFile.toPath()))
 		{
 			int lineNumber = 0;
@@ -355,7 +359,7 @@ public abstract class Board implements Cloneable
 				for (char c : line.toCharArray())
 				{
 					// Turn the character to a piece.
-					squares[charNumber][lineNumber] = Piece.fromText("" + c);
+					board.squares[charNumber][lineNumber] = Piece.fromText("" + c);
 					charNumber++;
 				}
 				lineNumber++;
@@ -363,13 +367,13 @@ public abstract class Board implements Cloneable
 		}
 
 		// Change the top-left corner to the playing side.
-		Piece playingSide = squares[0][0];
-		squares[0][0] = OUT;
+		Piece playingSide = board.squares[0][0];
+		board.squares[0][0] = OUT;
 
 		// Set the board's attributes.
 		board.dwarvesTurn = playingSide != TROLL;
-		board.squares = squares;
 
+		// Fill the cache of playable pieces.
 		piecesCache = new ArrayList<>();
 		for (int i = 0; i < board.getWidth(); i++)
 		{
