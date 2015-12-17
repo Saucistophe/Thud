@@ -26,6 +26,7 @@ import org.saucistophe.thud.model.Piece;
 import static org.saucistophe.thud.model.Piece.DWARF;
 import static org.saucistophe.thud.model.Piece.EMPTY;
 import org.saucistophe.thud.model.boards.Board;
+import static org.saucistophe.thud.model.boards.Board.readFromStream;
 import org.saucistophe.thud.model.players.NegamaxPlayer;
 import org.saucistophe.thud.model.players.Player;
 
@@ -38,6 +39,8 @@ public class Display
 	 The display's main frame, that is a singleton.
 	 */
 	private static final JFrame MAIN_FRAME = new JFrame();
+
+
 
 	/**
 	 The main display panel.
@@ -84,8 +87,7 @@ public class Display
 		{
 			// Load the initial board.
 			ClassLoader classLoader = Display.class.getClassLoader();
-			File file = new File(classLoader.getResource("initialBoard.thud").getFile());
-			initialBoard = readFromFile(file);
+			initialBoard = readFromStream(classLoader.getResourceAsStream("initialBoard.thud"));
 
 		} catch (Exception ex)
 		{

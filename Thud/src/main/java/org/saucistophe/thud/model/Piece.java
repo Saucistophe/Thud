@@ -13,13 +13,14 @@ public enum Piece
 
 	public static Piece fromText(String text)
 	{
-		for (Piece candidateValue  : values())
+		for (Piece candidateValue : values())
 		{
-			if(candidateValue.text.equals(text))
+			if (candidateValue.text.equals(text))
 			{
 				return candidateValue;
 			}
 		}
+		System.err.println("Unknown piece type " + text);
 		return null;
 	}
 }

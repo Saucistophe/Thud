@@ -1,9 +1,12 @@
 package org.saucistophe.thud.model.boards;
 
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.io.PrintWriter;
-import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -17,6 +20,7 @@ import static org.saucistophe.thud.model.Piece.DWARF;
 import static org.saucistophe.thud.model.Piece.EMPTY;
 import static org.saucistophe.thud.model.Piece.OUT;
 import static org.saucistophe.thud.model.Piece.TROLL;
+import org.saucistophe.utils.Constants;
 
 /**
  The board corresponds to a state of the game, and contains an 2D array of
@@ -328,19 +332,24 @@ public abstract class Board implements Cloneable
 	}
 
 	/**
-	 Reads a board from a thud! file.
+	 Reads a board from a stream to a thud! file.
 
-	 @param inputFile The file to read.
+	 @param inputStream The stream of the file to read.
 	 @return The stored board.
 
-	 @throws IOException In case of problems when acessing or reading the file.
+	 @throws java.io.IOException When there's a problem reading the file.
 	 */
-	public static Board readFromFile(File inputFile) throws IOException
+	public static Board readFromStream(InputStream inputStream) throws IOException
 	{
+		BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream, Constants.ENCODING));
+
+		// Turn the file to an array of strings.
+		List<String> lines = reader.lines().collect(Collectors.toList());
+
 		// First check the longest line in the file.
-		int longestLine = Files.lines(inputFile.toPath()).mapToInt(String::length).max().getAsInt();
+		int longestLine = lines.stream().mapToInt(String::length).max().getAsInt();
 		// Also get the number of lines.
-		int numberOfLines = (int) Files.lines(inputFile.toPath()).count();
+		int numberOfLines = lines.size();
 
 		// TODO add something to decide which class.
 		Board board = new RegularBoard();
@@ -348,22 +357,18 @@ public abstract class Board implements Cloneable
 		// Create the relevant square board.
 		board.squares = new Piece[longestLine][numberOfLines];
 
-		try (Stream<String> lines = Files.lines(inputFile.toPath()))
+		int lineNumber = 0;
+		for (String line : lines)
 		{
-			int lineNumber = 0;
-			// For each line:
-			for (String line : (Iterable<String>) lines::iterator)
+			// For each character:
+			int charNumber = 0;
+			for (char c : line.toCharArray())
 			{
-				// For each character:
-				int charNumber = 0;
-				for (char c : line.toCharArray())
-				{
-					// Turn the character to a piece.
-					board.squares[charNumber][lineNumber] = Piece.fromText("" + c);
-					charNumber++;
-				}
-				lineNumber++;
+				// Turn the character to a piece.
+				board.squares[charNumber][lineNumber] = Piece.fromText("" + c);
+				charNumber++;
 			}
+			lineNumber++;
 		}
 
 		// Change the top-left corner to the playing side.
@@ -387,6 +392,19 @@ public abstract class Board implements Cloneable
 		}
 
 		return board;
+	}
+
+	/**
+	 Reads a board from a thud! file.
+
+	 @param inputFile The file to read.
+	 @return The stored board.
+
+	 @throws IOException In case of problems when acessing or reading the file.
+	 */
+	public static Board readFromFile(File inputFile) throws IOException
+	{
+		return readFromStream(new FileInputStream(inputFile));
 	}
 
 	/**
