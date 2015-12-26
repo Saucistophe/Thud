@@ -64,10 +64,6 @@ public abstract class Board implements Cloneable
 	 */
 	public abstract List<Coordinate> validMoves(int x, int y, List<Coordinate> trollShovings);
 
-	public Board()
-	{
-	}
-
 	/**
 	 Clones the current board.
 

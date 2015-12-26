@@ -1,17 +1,22 @@
 package org.saucistophe.thud.model.players;
 
+import java.util.function.Consumer;
+import org.saucistophe.math.genetics.Individual;
 import org.saucistophe.thud.model.boards.Board;
 
-public abstract class Player
+public abstract class Player extends Individual
 {
-	public Player(Board board)
-	{
-		this.board = board;
-	}
+	/**
+	 A callback to display or handle the reflection progress. Can be null.
+	 It must handle percentages (values 0-100).
+	 */
+	public Consumer<Integer> progressCallback = null;
 
-	public Board board;
-
-	public abstract void makeBestMove();
+	/**
+	 @param evaluatedBoard The board to evaluate.
+	 @return The board after making its move.
+	 */
+	public abstract Board makeBestMove(Board evaluatedBoard);
 
 	/**
 	 Evaluates the current state of the board, in regard to which side is

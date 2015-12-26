@@ -1,4 +1,4 @@
-version = '1.1'
+version = '1.2'
 
 apply plugin:'application'
 ext.mainClass = mainClassName = "org.saucistophe.thud.display.Display"

@@ -1,5 +1,6 @@
 package org.saucistophe.thud.display;
 
+import java.awt.BorderLayout;
 import java.awt.GridLayout;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
@@ -7,7 +8,6 @@ import static java.awt.event.KeyEvent.VK_SPACE;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.io.File;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
@@ -18,7 +18,9 @@ import javax.swing.JMenuBar;
 import javax.swing.JMenuItem;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
+import javax.swing.JProgressBar;
 import javax.swing.JSeparator;
+import javax.swing.SwingUtilities;
 import org.saucistophe.settings.SettingsHandler;
 import org.saucistophe.swing.FileComponentsUtils;
 import org.saucistophe.thud.model.Coordinate;
@@ -40,12 +42,15 @@ public class Display
 	 */
 	private static final JFrame MAIN_FRAME = new JFrame();
 
-
-
 	/**
 	 The main display panel.
 	 */
 	private JPanel squaresPanel;
+
+	/**
+	 The progress bar for AI moves.
+	 */
+	private JProgressBar progressBar;
 
 	/**
 	 The model representation of the board.
@@ -55,7 +60,12 @@ public class Display
 	/**
 	 The initial regular board.
 	 */
-	private static Board initialBoard;
+	public static Board initialBoard;
+
+	/**
+	The AI reflection thread.
+	*/
+	private Thread aiThread = null;
 
 	private File lastSavedFile = null;
 
@@ -118,6 +128,8 @@ public class Display
 	 */
 	private void createAndShowGui()
 	{
+		MAIN_FRAME.setLayout(new BorderLayout());
+
 		// Create a blank grid.
 		updateBoardPanel();
 
@@ -221,6 +233,12 @@ public class Display
 		}
 		menuBar.add(toolsMenu);
 
+		// Add a bottom progress bar for AI.
+		progressBar = new JProgressBar();
+		progressBar.setStringPainted(true);
+		progressBar.setVisible(false);
+		MAIN_FRAME.add(progressBar, BorderLayout.SOUTH);
+
 		MAIN_FRAME.setJMenuBar(menuBar);
 		MAIN_FRAME.setVisible(true);
 		MAIN_FRAME.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -303,23 +321,39 @@ public class Display
 				// Playing a move with the AI.
 				if (ke.getKeyCode() == VK_SPACE)
 				{
-					Player player = new NegamaxPlayer(board);
-					player.makeBestMove();
+					Player player = new NegamaxPlayer();
+					// Register a progress callback using the progress bar.
+					player.progressCallback = i -> SwingUtilities.invokeLater(() -> progressBar.setValue(i));
 
-					// Clean all selections.
-					potentialKiller = null;
-					potentialVictims = null;
-					potentialCrimeScene = null;
-					selected = null;
+					// Make the move, in another thread (not to block the UI).
+					aiThread = new Thread(() ->
+						{
+							// Enable the progress bar.
+							progressBar.setVisible(true);
 
-					// Update the display.
-					update();
+							// Actual reflexion.
+							player.makeBestMove(board);
+
+							// Disable the progress bar.
+							progressBar.setVisible(false);
+							SwingUtilities.invokeLater(() -> progressBar.setValue(0));
+
+							// Clean all selections.
+							potentialKiller = null;
+							potentialVictims = null;
+							potentialCrimeScene = null;
+							selected = null;
+
+							// Update the display.
+							update();
+					});
+					aiThread.start();
 				}
 			}
 		});
 		setupSquares();
 		update();
-		MAIN_FRAME.add(squaresPanel);
+		MAIN_FRAME.add(squaresPanel, BorderLayout.CENTER);
 		MAIN_FRAME.pack();
 	}
 
@@ -374,6 +408,10 @@ public class Display
 		@Override
 		public void mousePressed(MouseEvent arg0)
 		{
+			// If a AI thread is running, bail out.
+			if(aiThread != null && aiThread.isAlive())
+				return;
+
 			// There are two cases, depending on wether a piece has been selected:
 			if (selected == null)
 			{
@@ -385,8 +423,7 @@ public class Display
 				}
 			}
 			else // Dwarf selection state
-			{
-				if (!board.dwarvesTurn
+			 if (!board.dwarvesTurn
 					&& potentialKiller != null
 					&& potentialVictims.contains(new Coordinate(x, y)))
 				{
@@ -416,8 +453,7 @@ public class Display
 					}
 					else // If there's already a selection, we check if the selected move is valid:
 					// If it's a troll, and there is several possible dwarven victims (i.e. on a simple move among several dwarves) prompt for the dwarf to kill.
-					{
-						if (board.squares[selected.x][selected.y] == Piece.TROLL)
+					 if (board.squares[selected.x][selected.y] == Piece.TROLL)
 						{
 							if (trollShovings.contains(new Coordinate(x, y)))
 							{
@@ -454,27 +490,10 @@ public class Display
 							board.move(selected.x, selected.y, x, y);
 							selected = null;
 						}
-					}
 				}
-			}
 
 			// Refresh the display, whatever was clicked.
 			update();
 		}
-	}
-
-	/**
-	 Loads a board file and, if successful, saves it as the "new game" initial configuration.
-
-	 @param inputFile The board file to read.
-	 @return The read board.
-
-	 @throws IOException In case of unopenable file.
-	 */
-	public static Board readFromFile(File inputFile) throws IOException
-	{
-		Board result = Board.readFromFile(inputFile);
-		initialBoard = result.cloneBoard();
-		return result;
 	}
 }
